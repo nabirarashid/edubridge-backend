@@ -90,40 +90,41 @@ app.post("/summarize", async (req, res) => {
 });
 
 
-
-
+// calling gemini api to summarize help requests
 app.post("/getQuestions", async (req, res) => {
-  console.log("working");
   const { studentId } = req.body;
 
   try {
     const student = await Student.findOne({ studentId });
     const topics = await student.helpRequests.map((h) => h.topic);
-    //const diffTopics = new Set(topics.values());
 
-    // If there's no homework that's been uploaded, just return message
+
     if (!student || !student.helpRequests.length) {
-      return res.json({ summary: "No data available" });
+      return res.json({ result: "No data available" });
     }
 
-    // Promt with different help topics
+    // Prompt with different help topics
     const prompt = `Create 10 practice problems based on previous topics this student has asked about. Give priority to more recent topics, and also the frequency of similar topics. Here are some previous topics to base questions off of: ${topics.join(", ")}\n${JSON.stringify(
-      student.helpRequests,
-      null,
-      2
-    )}`;
-
+        student.helpRequests,
+        null,
+        2
+      )}`;
+  
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-    
-    console.log(text);
+    return res.json({questions: text})
 
   } catch (error) {
-    res.status(500).json({ error: "Failed to generate questions" });
+    console.error("Error:", error);
+    res.status(500).json({ error: "Failed to generate summary" });
   }
 });
+
+
+
+
 
 
 app.listen(PORT, () => {
