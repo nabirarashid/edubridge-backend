@@ -5,6 +5,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const Student = require("./models/Student");
 
+
 mongoose
   .connect(process.env.MONGODB_URI, {
     useNewUrlParser: true,
@@ -24,6 +25,7 @@ const PORT = process.env.PORT || 4000;
 // saving help request
 app.post("/help-request", async (req, res) => {
   const { studentId, topic, details } = req.body;
+  
 
   try {
     const student = await Student.findOneAndUpdate(
@@ -86,6 +88,43 @@ app.post("/summarize", async (req, res) => {
     res.status(500).json({ error: "Failed to generate summary" });
   }
 });
+
+
+
+
+app.post("/getQuestions", async (req, res) => {
+  console.log("working");
+  const { studentId } = req.body;
+
+  try {
+    const student = await Student.findOne({ studentId });
+    const topics = await student.helpRequests.map((h) => h.topic);
+    //const diffTopics = new Set(topics.values());
+
+    // If there's no homework that's been uploaded, just return message
+    if (!student || !student.helpRequests.length) {
+      return res.json({ summary: "No data available" });
+    }
+
+    // Promt with different help topics
+    const prompt = `Create 10 practice problems based on previous topics this student has asked about. Give priority to more recent topics, and also the frequency of similar topics. Here are some previous topics to base questions off of: ${topics.join(", ")}\n${JSON.stringify(
+      student.helpRequests,
+      null,
+      2
+    )}`;
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    console.log(text);
+
+  } catch (error) {
+    res.status(500).json({ error: "Failed to generate questions" });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

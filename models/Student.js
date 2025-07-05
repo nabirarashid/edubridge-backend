@@ -17,4 +17,5 @@ const StudentSchema = new mongoose.Schema({
     progressSummaries: [ProgressSummarySchema]
 })
 
+
 module.exports = mongoose.model("Student", StudentSchema)
